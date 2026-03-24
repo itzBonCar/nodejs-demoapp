@@ -1,33 +1,45 @@
+# Build Stage
 ARG NODE_VERSION=24.12.0
+FROM node:${NODE_VERSION}-alpine AS builder
 
-FROM node:${NODE_VERSION}-alpine
-
-# Use production node environment by default.
 ENV NODE_ENV=production
+WORKDIR /app
 
+# copy package*.json first, build it then copy rest of the files to speed up the build
+COPY src/package*.json ./
 
-WORKDIR /usr/src/app
+# install packages under dependencies only and ignore devDependencies
+# delete npm cache folder content
+RUN npm ci --only=production && npm cache clean --force
 
-# Download dependencies as a separate step to take advantage of Docker's caching.
-# Leverage a cache mount to /root/.npm to speed up subsequent builds.
-# Leverage a bind mounts to package.json and package-lock.json to avoid having to copy them into
-# into this layer.
-RUN --mount=type=bind,source=src/package.json,target=package.json \
-    --mount=type=bind,source=src/package-lock.json,target=package-lock.json \
-    --mount=type=cache,target=/root/.npm \
-    npm ci --omit=dev
-
-# Copy the rest of the source files into the image.
+# Copy the rest of the source files into the image
 COPY src/ ./
 
-# Ensure the non-root user can read the app files and dependencies.
-RUN chown -R node:node /usr/src/app
 
-# Run the application as a non-root user.
-USER node
+# Prod Stage
+ARG NODE_VERSION=24.12.0
+FROM node:${NODE_VERSION}-alpine AS production
 
-# Expose the port that the application listens on.
+WORKDIR /app
+
+# Create non-root system user and system group
+RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
+
+# Copy built application from builder stage
+COPY --from=builder /app /app
+
+# Ensure the non-root user can read the app files and dependencies
+RUN chown -R nodejs:nodejs /app
+
+# Switch to non-root user
+USER nodejs
+
+# Expose port
 EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=2 \
+  CMD node -e "require('http').get('http://localhost:3000', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
 # Run the application.
 ENTRYPOINT ["npm"]
