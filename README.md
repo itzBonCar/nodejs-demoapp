@@ -3,7 +3,7 @@
 
 ## 📌 Project Objective
 
-This project focuses on implementing real-world **DevOps practices** by deploying an existing application using modern tools and methodologies.
+This project focuses on implementing real-world **DevOps practices** by deploying an existing nodejs web application using modern tools and methodologies.
 
 The key objectives of this project are:
 
@@ -57,3 +57,11 @@ This project extends the original application by implementing DevOps practices s
 - Kubernetes deployment
 - CI/CD pipeline automation
 - Production-ready configurations
+
+
+## 🔧 My Contributions
+
+- Containerized the application using Docker
+- Deployed the application using Kubernetes
+- Built a CI/CD pipeline for automated workflows
+- Applied DevOps best practices for production readiness
